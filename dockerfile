@@ -7,7 +7,7 @@ COPY package*.json ./
 COPY tailwind.config.js ./
 COPY postcss.config.js ./
 
-# Install dependencies
+# Install dependencies hello
 RUN npm config set registry https://registry.npmmirror.com \
     && npm install --fetch-retries=5 --fetch-retry-mintimeout=20000
 
