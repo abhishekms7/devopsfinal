@@ -7,35 +7,30 @@ COPY package*.json ./
 COPY tailwind.config.js ./
 COPY postcss.config.js ./
 
-# Install dependencies hello
+# Install dependencies
 RUN npm config set registry https://registry.npmmirror.com \
-    && npm install --fetch-retries=5 --fetch-retry-mintimeout=20000
+  && npm install --fetch-retries=5 --fetch-retry-mintimeout=20000
 
 # Copy remaining files and build
 COPY . .
 RUN npm run build  # Creates /app/build directory
 
 # Stage 2: Production
-FROM node:18-alpine
-WORKDIR /app
+FROM nginx:stable-alpine
+WORKDIR /usr/share/nginx/html
 
-# Install serve globally as root first
-RUN npm install -g serve
-
-# Create non-root user and set permissions
-RUN addgroup -g 1001 appgroup && \
-    adduser -u 1001 -G appgroup -D appuser && \
-    chown -R appuser:appgroup /app
+# Remove default Nginx static files
+RUN rm -rf ./*
 
 # Copy build output from builder
-COPY --from=builder --chown=appuser:appgroup /app/build ./build
+COPY --from=builder /app/build ./
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD curl -f http://localhost:3000/ || exit 1
+# Copy custom Nginx configuration if needed
+# Uncomment the following line if you have a custom nginx.conf
+# COPY nginx.conf /etc/nginx/nginx.conf
 
-# Switch to non-root user
-USER appuser
+# Expose port 80
+EXPOSE 80
 
-EXPOSE 3000
-CMD ["serve", "-s", "build", "-l", "3000"]
+# Nginx runs as default user
+CMD ["nginx", "-g", "daemon off;"]
