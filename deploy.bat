@@ -2,35 +2,18 @@
 setlocal EnableDelayedExpansion
 
 REM Variables
-set STACK_NAME=my_stack
 set COMPOSE_FILE=docker-compose.yml
 
-REM Function to clean up existing stack and swarm
-echo Cleaning up existing stack and swarm...
+REM Function to clean up existing containers and services
+echo Stopping and removing existing containers and services...
 
-REM Check and remove existing stack
-for /f "delims=" %%i in ('docker stack ls ^| findstr /C:"%STACK_NAME%"') do (
-    echo Removing existing stack...
-    docker stack rm %STACK_NAME%
-    timeout /t 10 >nul
-)
-
-REM Check if in swarm mode
-for /f "delims=" %%i in ('docker info ^| findstr /C:"Swarm: active"') do (
-    echo Leaving existing swarm...
-    docker swarm leave --force
-    timeout /t 5 >nul
-)
+REM Bring down the existing setup
+docker-compose -f "%COMPOSE_FILE%" down
 
 REM Main deployment process
 echo Starting deployment process...
 
-REM Initialize swarm
-echo Initializing new swarm...
-docker swarm init
-
-REM Deploy stack
-echo Deploying stack "%STACK_NAME%"...
-docker stack deploy -c "%COMPOSE_FILE%" "%STACK_NAME%"
+REM Bring up the new setup
+docker-compose -f "%COMPOSE_FILE%" up -d
 
 echo Deployment completed successfully!
