@@ -1,6 +1,6 @@
 services:
   frontend:
-    image: akshopping-frontend
+    image: abhishekak71/akshopping-frontend:latest
     deploy:
       replicas: 3
       endpoint_mode: vip
