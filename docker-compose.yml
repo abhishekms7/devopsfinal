@@ -4,7 +4,6 @@ networks:
   app-network:
     driver: overlay
     attachable: true
-    name: my-app_app-network  # Explicit network naming for stack compatibility
 
 services:
   web:
@@ -12,7 +11,7 @@ services:
     ports:
       - "3000:80"
     environment:
-      - NODE_ENV=production
+      NODE_ENV: production
     networks:
       - app-network
     deploy:
@@ -28,9 +27,3 @@ services:
       placement:
         constraints:
           - node.role == manager
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
