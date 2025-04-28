@@ -1,78 +1,105 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM Set your Docker Hub credentials and image name
+:: Configuration
 set DOCKER_USERNAME=abhishekak71
 set IMAGE_NAME=akshopping-frontend
 set STACK_NAME=my-app
 set NETWORK_NAME=%STACK_NAME%_app-network
 set COMPOSE_FILE=docker-compose.yml
+set BUILD_CONTEXT=./client
+set TAG=latest
 
-REM Build the image
-echo Building Docker image...
-docker build -t %DOCKER_USERNAME%/%IMAGE_NAME% ./client
+:: Build phase
+echo [1/4] Building Docker image...
+docker build -t %DOCKER_USERNAME%/%IMAGE_NAME%:%TAG% %BUILD_CONTEXT%
 if %errorlevel% neq 0 (
     echo ERROR: Docker build failed
     exit /b 1
 )
 
-REM Push the image to Docker Hub
-echo Pushing image to Docker Hub...
-docker push %DOCKER_USERNAME%/%IMAGE_NAME%
+:: Push phase
+echo [2/4] Pushing image to Docker Hub...
+docker push %DOCKER_USERNAME%/%IMAGE_NAME%:%TAG%
 if %errorlevel% neq 0 (
     echo ERROR: Docker push failed
     exit /b 1
 )
 
-REM Check if stack exists and remove it if it does
-echo Checking for existing stack...
+:: Stack removal phase
+echo [3/4] Checking for existing stack...
 docker stack ls | findstr %STACK_NAME% >nul
 if %errorlevel% equ 0 (
     echo Removing existing stack %STACK_NAME%...
     docker stack rm %STACK_NAME%
     
-    REM Wait for resources to be released
-    echo Waiting for stack resources to be removed...
-    timeout /t 15 /nobreak >nul
-    
-    REM Verify network is removed (Docker sometimes leaves networks)
-    docker network inspect %NETWORK_NAME% >nul 2>&1
-    if %errorlevel% equ 0 (
-        echo Removing orphaned network %NETWORK_NAME%...
-        docker network rm %NETWORK_NAME%
-        timeout /t 5 /nobreak >nul
-    )
+    :: Wait for clean removal
+    echo Waiting for resources to release...
+    call :wait_for_network_removal %NETWORK_NAME% 20
 )
 
-REM Ensure the network exists before deployment
-docker network inspect %NETWORK_NAME% >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Creating network %NETWORK_NAME%...
-    docker network create --driver overlay --attachable %NETWORK_NAME%
-    if %errorlevel% neq 0 (
-        echo ERROR: Failed to create network %NETWORK_NAME%
-        exit /b 1
-    )
-)
-
-REM Deploy the stack
-echo Deploying stack %STACK_NAME%...
+:: Deployment phase
+echo [4/4] Deploying stack %STACK_NAME%...
 docker stack deploy -c %COMPOSE_FILE% %STACK_NAME%
 if %errorlevel% neq 0 (
     echo ERROR: Stack deployment failed
     exit /b 1
 )
 
-REM Verify deployment
+:: Verification
 echo Verifying deployment...
-timeout /t 10 /nobreak >nul
+call :verify_service_health %STACK_NAME%_web 30
 
-docker service ls --filter "name=%STACK_NAME%_web" | findstr "1/1" >nul
-if %errorlevel% equ 0 (
-    echo Deployment successful!
+echo SUCCESS: Deployment completed
+exit /b 0
+
+:: Functions
+:wait_for_network_removal
+setlocal
+set network=%1
+set timeout=%2
+set counter=0
+
+:removal_loop
+docker network inspect %network% >nul 2>&1
+if %errorlevel% neq 0 (
+    endlocal
     exit /b 0
-) else (
-    echo ERROR: Service failed to start
-    docker service ps %STACK_NAME%_web --no-trunc
+)
+
+set /a counter+=1
+if %counter% geq %timeout% (
+    echo WARNING: Network %network% still exists after %timeout% seconds
+    endlocal
     exit /b 1
 )
+
+timeout /t 1 /nobreak >nul
+goto removal_loop
+
+:verify_service_health
+setlocal
+set service=%1
+set timeout=%2
+set counter=0
+
+:health_check_loop
+docker service ps %service% --format "{{.CurrentState}}" | findstr "Running" >nul
+if %errorlevel% equ 0 (
+    docker service inspect %service% --format "{{.UpdateStatus.State}}" | findstr "completed" >nul
+    if %errorlevel% equ 0 (
+        endlocal
+        exit /b 0
+    )
+)
+
+set /a counter+=1
+if %counter% geq %timeout% (
+    echo ERROR: Service %service% not healthy after %timeout% seconds
+    docker service ps %service% --no-trunc
+    endlocal
+    exit /b 1
+)
+
+timeout /t 1 /nobreak >nul
+goto health_check_loop
