@@ -1,6 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
 
+:: Disable Docker expecting input redirection
+set DOCKER_CLI_EXPERIMENTAL=enabled
+
 :: Configuration
 set DOCKER_USERNAME=abhishekak71
 set IMAGE_NAME=akshopping-frontend
@@ -85,7 +88,7 @@ set timeout=%2
 set counter=0
 
 :health_check_loop
-docker service ps %service% --filter "desired-state=running" --format "{{.CurrentState}}" | findstr "Running" >nul
+docker service ps %service% --filter "desired-state=running" | findstr /I "Running" >nul
 if %errorlevel% equ 0 (
     echo Service %service% is running.
     endlocal
