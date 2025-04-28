@@ -30,8 +30,20 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+:: Check if overlay network exists
+echo [3/4] Checking if the network %NETWORK_NAME% exists...
+docker network ls | find /i "%NETWORK_NAME%" >nul
+if %errorlevel% neq 0 (
+    echo Network %NETWORK_NAME% does not exist. Creating it...
+    docker network create --driver overlay --attachable %NETWORK_NAME%
+    if %errorlevel% neq 0 (
+        echo ERROR: Failed to create network %NETWORK_NAME%
+        exit /b 1
+    )
+)
+
 :: Stack removal phase
-echo [3/4] Checking for existing stack...
+echo [4/4] Checking for existing stack...
 docker stack ls | find /i "%STACK_NAME%" >nul
 if %errorlevel% equ 0 (
     echo Removing existing stack %STACK_NAME%...
@@ -42,15 +54,8 @@ if %errorlevel% equ 0 (
     call :wait_for_network_removal %NETWORK_NAME% 60
 )
 
-:: Ensure network exists before deployment
-docker network inspect %NETWORK_NAME% >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Creating network %NETWORK_NAME%...
-    docker network create --driver overlay --attachable %NETWORK_NAME%
-)
-
 :: Deployment phase
-echo [4/4] Deploying stack %STACK_NAME%...
+echo Deploying stack %STACK_NAME%...
 docker stack deploy -c %COMPOSE_FILE% %STACK_NAME% --with-registry-auth
 if %errorlevel% neq 0 (
     echo ERROR: Stack deployment failed
