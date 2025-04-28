@@ -27,7 +27,7 @@ services:
         max_attempts: 3
       placement:
         constraints:
-          - node.role == manager  # Ensure deployment happens on a manager node
+          - node.role == manager
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
       interval: 30s
