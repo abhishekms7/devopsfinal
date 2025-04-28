@@ -7,7 +7,7 @@ networks:
 
 services:
   web:
-    image: abhishekak71/akshopping-frontend:latest
+    image: xamderbilla/akshopping-frontend:latest
     ports:
       - "3000:80"
     environment:
