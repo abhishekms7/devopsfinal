@@ -1,10 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-:: Disable Docker expecting input redirection
-set DOCKER_CLI_EXPERIMENTAL=enabled
-
-:: Configuration
+:: Configuration - ensure these match your environment
 set DOCKER_USERNAME=abhishekak71
 set IMAGE_NAME=akshopping-frontend
 set STACK_NAME=my-app
@@ -13,6 +10,9 @@ set COMPOSE_FILE=docker-compose.yml
 set BUILD_CONTEXT=./client
 set TAG=latest
 set SERVICE_NAME=%STACK_NAME%_web
+
+:: Set Docker CLI to non-interactive mode
+set DOCKER_CLI_HINTS=false
 
 :: Build phase
 echo [1/4] Building Docker image...
@@ -32,14 +32,21 @@ if %errorlevel% neq 0 (
 
 :: Stack removal phase
 echo [3/4] Checking for existing stack...
-docker stack ls | findstr /I "%STACK_NAME%" >nul
+docker stack ls | findstr /C:"%STACK_NAME%" >nul
 if %errorlevel% equ 0 (
     echo Removing existing stack %STACK_NAME%...
     docker stack rm %STACK_NAME%
     
-    :: Wait for clean removal
-    echo Waiting for network resources to release...
-    call :wait_for_network_removal %NETWORK_NAME% 40
+    :: Extended wait time for Windows/Docker synchronization
+    echo Waiting for resources to release (up to 60 seconds)...
+    call :wait_for_network_removal %NETWORK_NAME% 60
+)
+
+:: Ensure network exists before deployment
+docker network inspect %NETWORK_NAME% >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Creating network %NETWORK_NAME%...
+    docker network create --driver overlay --attachable %NETWORK_NAME%
 )
 
 :: Deployment phase
@@ -50,9 +57,9 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: Verification
-echo Verifying deployment of service %SERVICE_NAME%...
-call :verify_service_running %SERVICE_NAME% 60
+:: Extended verification period
+echo Verifying deployment (up to 90 seconds)...
+call :verify_service_ready %SERVICE_NAME% 90
 
 echo SUCCESS: Deployment completed successfully.
 exit /b 0
@@ -73,31 +80,36 @@ if %errorlevel% neq 0 (
 
 set /a counter+=1
 if %counter% geq %timeout% (
-    echo WARNING: Network %network% still exists after %timeout% seconds
+    echo WARNING: Network %network% still exists after %timeout% seconds - forcing removal
+    docker network rm %network% >nul 2>&1
     endlocal
-    exit /b 1
+    exit /b 0
 )
 
 timeout /t 1 /nobreak >nul
 goto removal_loop
 
-:verify_service_running
+:verify_service_ready
 setlocal
 set service=%1
 set timeout=%2
 set counter=0
 
 :health_check_loop
-docker service ps %service% --filter "desired-state=running" | findstr /I "Running" >nul
+docker service inspect %service% --format "{{.UpdateStatus.State}}" | findstr "completed" >nul
 if %errorlevel% equ 0 (
-    echo Service %service% is running.
-    endlocal
-    exit /b 0
+    docker service ps %service% --format "{{.CurrentState}}" | findstr "Running" >nul
+    if %errorlevel% equ 0 (
+        echo Service %service% is fully deployed and healthy
+        endlocal
+        exit /b 0
+    )
 )
 
 set /a counter+=1
 if %counter% geq %timeout% (
-    echo ERROR: Service %service% did not reach running state after %timeout% seconds
+    echo ERROR: Service %service% did not become ready after %timeout% seconds
+    echo Current service state:
     docker service ps %service% --no-trunc
     endlocal
     exit /b 1
