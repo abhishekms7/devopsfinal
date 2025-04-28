@@ -1,31 +1,27 @@
 @echo off
-setlocal enabledelayedexpansion
 
-REM Set your Docker Hub credentials and image name
-set DOCKER_USERNAME=abhishekak71
-set IMAGE_NAME=akshopping-frontend
-set STACK_NAME=my-app
-
-REM Build the image
+:: Build Docker image
 echo Building Docker image...
-docker build -t %DOCKER_USERNAME%/%IMAGE_NAME% ./client
+docker build -t abhishekak71/akshopping-frontend .
 
-REM Push the image to Docker Hub
+:: Push image to Docker Hub
 echo Pushing image to Docker Hub...
-docker push %DOCKER_USERNAME%/%IMAGE_NAME%
+docker push abhishekak71/akshopping-frontend
 
-REM Check if stack exists and remove it if it does
+:: Deploy stack
 echo Checking for existing stack...
-docker stack ls | findstr %STACK_NAME% >nul
-if %errorlevel% equ 0 (
-    echo Removing existing stack %STACK_NAME%...
-    docker stack rm %STACK_NAME%
-    timeout /t 10 /nobreak >nul
+
+:: Check if network exists, create if it doesn't
+docker network inspect my-app_app-network >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Creating network my-app_app-network...
+    docker network create my-app_app-network
+) else (
+    echo Network my-app_app-network already exists, skipping creation...
 )
 
-REM Deploy the stack
-echo Deploying stack %STACK_NAME%...
-docker stack deploy -c docker-compose.yml %STACK_NAME%
+echo Deploying stack my-app...
+docker stack deploy -c docker-compose.yml my-app
 
-echo Deployment completed!
-
+echo Deployment completed successfully
+exit /b 0
