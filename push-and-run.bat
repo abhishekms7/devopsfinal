@@ -1,34 +1,31 @@
 @echo off
+setlocal enabledelayedexpansion
 
-:: Ensure Dockerfile is in the correct directory
+REM Set your Docker Hub credentials and image name
+set DOCKER_USERNAME=abhishekak71
+set IMAGE_NAME=akshopping-frontend
+set STACK_NAME=my-app
+
+REM Build the image
 echo Building Docker image...
-docker build -t abhishekak71/akshopping-frontend .
+docker build -t %DOCKER_USERNAME%/%IMAGE_NAME% ./client
 
-:: Push image to Docker Hub
+REM Push the image to Docker Hub
 echo Pushing image to Docker Hub...
-docker push abhishekak71/akshopping-frontend
+docker push %DOCKER_USERNAME%/%IMAGE_NAME%
 
-:: Check for existing stack and network
+REM Check if stack exists and remove it if it does
 echo Checking for existing stack...
-
-:: Check if network exists, create if it doesn't
-docker network inspect my-app_app-network >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Creating network my-app_app-network...
-    docker network create my-app_app-network
-) else (
-    echo Network my-app_app-network already exists, skipping creation...
+docker stack ls | findstr %STACK_NAME% >nul
+if %errorlevel% equ 0 (
+    echo Removing existing stack %STACK_NAME%...
+    docker stack rm %STACK_NAME%
+    timeout /t 10 /nobreak >nul
 )
 
-:: Ensure docker-compose.yml is present in the current directory
-if not exist "docker-compose.yml" (
-    echo Error: docker-compose.yml not found in the current directory.
-    exit /b 1
-)
+REM Deploy the stack
+echo Deploying stack %STACK_NAME%...
+docker stack deploy -c docker-compose.yml %STACK_NAME%
 
-:: Deploy stack using docker-compose.yml
-echo Deploying stack my-app...
-docker stack deploy -c docker-compose.yml my-app
+echo Deployment completed!
 
-echo Deployment completed successfully
-exit /b 0
