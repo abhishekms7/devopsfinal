@@ -1,36 +1,17 @@
-version: "3.8"
-
-networks:
-  app-network:
-    driver: overlay
-    attachable: true
-    name: my-app_app-network  # Explicit network naming for stack compatibility
+version: '3.8'
 
 services:
   web:
     image: abhishekak71/akshopping-frontend:latest
     ports:
-      - "3000:80"
-    environment:
-      - NODE_ENV=production
-    networks:
-      - app-network
+      - "80:80"
     deploy:
-      replicas: 2
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: start-first
+      replicas: 1
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 3
-      placement:
-        constraints:
-          - node.role == manager
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:80 || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: overlay
