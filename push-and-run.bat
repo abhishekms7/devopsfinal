@@ -32,7 +32,7 @@ if %errorlevel% neq 0 (
 
 :: Stack removal phase
 echo [3/4] Checking for existing stack...
-docker stack ls | findstr /C:"%STACK_NAME%" >nul
+docker stack ls | find /i "%STACK_NAME%" >nul
 if %errorlevel% equ 0 (
     echo Removing existing stack %STACK_NAME%...
     docker stack rm %STACK_NAME%
@@ -96,9 +96,9 @@ set timeout=%2
 set counter=0
 
 :health_check_loop
-docker service inspect %service% --format "{{.UpdateStatus.State}}" | findstr "completed" >nul
+docker service inspect %service% --format "{{.UpdateStatus.State}}" | find /i "completed" >nul
 if %errorlevel% equ 0 (
-    docker service ps %service% --format "{{.CurrentState}}" | findstr "Running" >nul
+    docker service ps %service% --format "{{.CurrentState}}" | find /i "running" >nul
     if %errorlevel% equ 0 (
         echo Service %service% is fully deployed and healthy
         endlocal
