@@ -1,21 +1,29 @@
-version: '3.8'
-
-services:
-  frontend:
-    image: abhishekak71/akshopping-frontend:latest
-    deploy:
-      replicas: 3
-    ports:
-      - 3000:80
-    networks:
-      - frontend-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+version: "3.8"
 
 networks:
-  frontend-net:
+  app-network:
     driver: overlay
     attachable: true
+
+services:
+  web:
+    image: my-react-app
+    ports:
+      - "3000:80"
+    environment:
+      NODE_ENV: production
+    networks:
+      - app-network
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.role == manager
