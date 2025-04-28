@@ -1,6 +1,6 @@
 @echo off
 
-:: Build Docker image
+:: Ensure Dockerfile is in the correct directory
 echo Building Docker image...
 docker build -t abhishekak71/akshopping-frontend .
 
@@ -8,7 +8,7 @@ docker build -t abhishekak71/akshopping-frontend .
 echo Pushing image to Docker Hub...
 docker push abhishekak71/akshopping-frontend
 
-:: Deploy stack
+:: Check for existing stack and network
 echo Checking for existing stack...
 
 :: Check if network exists, create if it doesn't
@@ -20,6 +20,13 @@ if %errorlevel% neq 0 (
     echo Network my-app_app-network already exists, skipping creation...
 )
 
+:: Ensure docker-compose.yml is present in the current directory
+if not exist "docker-compose.yml" (
+    echo Error: docker-compose.yml not found in the current directory.
+    exit /b 1
+)
+
+:: Deploy stack using docker-compose.yml
 echo Deploying stack my-app...
 docker stack deploy -c docker-compose.yml my-app
 
