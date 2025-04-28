@@ -9,21 +9,37 @@ services:
   web:
     image: abhishekak71/akshopping-frontend:latest
     ports:
-      - "3000:80"
+      - published: 3000
+        target: 80
+        protocol: tcp
+        mode: host
     environment:
       NODE_ENV: production
     networks:
       - app-network
     deploy:
+      mode: replicated
       replicas: 2
       update_config:
         parallelism: 1
         delay: 10s
         order: start-first
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+        order: stop-first
       restart_policy:
         condition: on-failure
         delay: 5s
         max_attempts: 3
+        window: 120s
       placement:
         constraints:
           - node.role == manager
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
