@@ -1,9 +1,9 @@
 @echo off
 set NETWORK_NAME=my-app_app-network
 
-:: Step 1: Docker login
+:: Step 1: Docker login using an access token
 echo Logging into Docker...
-echo **** | docker login -u abhishekak71 --password-stdin
+echo <your_docker_access_token> | docker login -u abhishekak71 --password-stdin
 if %errorlevel% neq 0 (
     echo ERROR: Docker login failed.
     exit /b 1
