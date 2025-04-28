@@ -1,31 +1,23 @@
 @echo off
-setlocal enabledelayedexpansion
 
-REM Set your Docker Hub credentials and image name
-set DOCKER_USERNAME=abhishekak71
-set IMAGE_NAME=akshopping-frontend
-set STACK_NAME=my-app
+:: Build and push
+docker build -t abhishekak71/akshopping-frontend .
+docker push abhishekak71/akshopping-frontend
 
-REM Build the image
-echo Building Docker image...
-docker build -t %DOCKER_USERNAME%/%IMAGE_NAME% ./client
+:: Stop and remove existing containers
+docker-compose down || echo "No existing containers to remove"
 
-REM Push the image to Docker Hub
-echo Pushing image to Docker Hub...
-docker push %DOCKER_USERNAME%/%IMAGE_NAME%
+:: Start new deployment
+docker-compose up -d
 
-REM Check if stack exists and remove it if it does
-echo Checking for existing stack...
-docker stack ls | findstr %STACK_NAME% >nul
-if %errorlevel% equ 0 (
-    echo Removing existing stack %STACK_NAME%...
-    docker stack rm %STACK_NAME%
-    timeout /t 10 /nobreak >nul
+:: Verify
+timeout /t 5 /nobreak > nul
+docker ps | find "akshopping-frontend"
+
+if %errorlevel% == 0 (
+    echo Deployment successful!
+    exit 0
+) else (
+    echo Deployment failed!
+    exit 1
 )
-
-REM Deploy the stack
-echo Deploying stack %STACK_NAME%...
-docker stack deploy -c docker-compose.yml %STACK_NAME%
-
-echo Deployment completed!
-
