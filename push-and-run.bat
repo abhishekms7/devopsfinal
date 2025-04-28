@@ -30,9 +30,9 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: Check if overlay network exists
+:: Check if the network exists, if not, create it
 echo [3/4] Checking if the network %NETWORK_NAME% exists...
-docker network ls | find /i "%NETWORK_NAME%" >nul
+docker network inspect %NETWORK_NAME% >nul 2>&1
 if %errorlevel% neq 0 (
     echo Network %NETWORK_NAME% does not exist. Creating it...
     docker network create --driver overlay --attachable %NETWORK_NAME%
@@ -42,20 +42,8 @@ if %errorlevel% neq 0 (
     )
 )
 
-:: Stack removal phase
-echo [4/4] Checking for existing stack...
-docker stack ls | find /i "%STACK_NAME%" >nul
-if %errorlevel% equ 0 (
-    echo Removing existing stack %STACK_NAME%...
-    docker stack rm %STACK_NAME%
-    
-    :: Extended wait time for Windows/Docker synchronization
-    echo Waiting for resources to release (up to 60 seconds)...
-    call :wait_for_network_removal %NETWORK_NAME% 60
-)
-
 :: Deployment phase
-echo Deploying stack %STACK_NAME%...
+echo [4/4] Deploying stack %STACK_NAME%...
 docker stack deploy -c %COMPOSE_FILE% %STACK_NAME% --with-registry-auth
 if %errorlevel% neq 0 (
     echo ERROR: Stack deployment failed
@@ -70,30 +58,6 @@ echo SUCCESS: Deployment completed successfully.
 exit /b 0
 
 :: --- Functions ---
-:wait_for_network_removal
-setlocal
-set network=%1
-set timeout=%2
-set counter=0
-
-:removal_loop
-docker network inspect %network% >nul 2>&1
-if %errorlevel% neq 0 (
-    endlocal
-    exit /b 0
-)
-
-set /a counter+=1
-if %counter% geq %timeout% (
-    echo WARNING: Network %network% still exists after %timeout% seconds - forcing removal
-    docker network rm %network% >nul 2>&1
-    endlocal
-    exit /b 0
-)
-
-timeout /t 1 /nobreak >nul
-goto removal_loop
-
 :verify_service_ready
 setlocal
 set service=%1
