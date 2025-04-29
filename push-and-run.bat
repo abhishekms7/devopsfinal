@@ -14,14 +14,10 @@ REM Push the image to Docker Hub
 echo Pushing image to Docker Hub...
 docker push %DOCKER_USERNAME%/%IMAGE_NAME%
 
-REM Check if stack exists and remove it if it does
-echo Checking for existing stack...
-docker stack ls | findstr %STACK_NAME% >nul
-if %errorlevel% equ 0 (
-    echo Removing existing stack %STACK_NAME%...
-    docker stack rm %STACK_NAME%
-    timeout /t 10 /nobreak >nul
-)
+REM Leave the swarm and reinitialize
+echo Leaving swarm and reinitializing...
+docker swarm leave --force
+docker swarm init 
 
 REM Deploy the stack
 echo Deploying stack %STACK_NAME%...
