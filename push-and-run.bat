@@ -24,4 +24,3 @@ echo Deploying stack %STACK_NAME%...
 docker stack deploy -c docker-compose.yml %STACK_NAME%
 docker stack ls
 echo Deployment completed!
-
