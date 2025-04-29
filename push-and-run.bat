@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 REM Set your Docker Hub credentials and image name
-set DOCKER_USERNAME=xanderbilla
+set DOCKER_USERNAME=abhishekak71
 set IMAGE_NAME=akshopping-frontend
 set STACK_NAME=my-app
 
