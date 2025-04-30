@@ -20,7 +20,8 @@ const About = () => {
         </h1>
         <Link to="/shop">
           <button className="w-52 h-10 bg-primeColor text-white hover:bg-black duration-300">
-            Continue
+            Continue shop
+            
           </button>
         </Link>
       </div>
