@@ -1,12 +1,11 @@
-version: '3.8'
-
 services:
   frontend:
-    image: abhishekak71/devopsfinal-client:latest
+    image: abhishekak71/akshopping-frontend:latest
     deploy:
       replicas: 3
     ports:
-      - "${PORT:-3000}:80"
+      - "3001:80"
+
     networks:
       - frontend-net
     healthcheck:
