@@ -2,7 +2,7 @@
 REM Docker build and deployment script with port conflict resolution
 
 SET DOCKER_USER=abhishekak71
-SET IMAGE_NAME=devopsfinal-client
+SET IMAGE_NAME=akshopping-frontend
 SET TAG=latest
 SET DEFAULT_PORT=3000
 SET ALTERNATE_PORT=3001
