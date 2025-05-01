@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   frontend:
-    image: abhishekak71/akshopping-frontend:latest
+    image: abhishekak71/devopsfinal-client:latest
     deploy:
       replicas: 3
     ports:
