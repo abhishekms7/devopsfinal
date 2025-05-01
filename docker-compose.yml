@@ -2,20 +2,21 @@ version: '3.8'
 
 services:
   frontend:
-    image: abhishekak71/akshopping-frontend:latest
+    image: abhishekak71/devopsfinal-client:latest
     deploy:
       replicas: 3
     ports:
-      - 3000:80
+      - "${PORT:-3000}:80"
     networks:
       - frontend-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
       interval: 30s
       timeout: 5s
       retries: 3
+    environment:
+      - PORT=3000 # Modify in .env file if needed
 
 networks:
   frontend-net:
-    driver: overlay
-    attachable: true
+    driver: bridge
