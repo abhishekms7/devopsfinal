@@ -1,14 +1,14 @@
 @echo off
-REM push-and-run.bat - Docker build, push and run script for Jenkins
+REM Docker build and deployment script for client project
 
-REM Set variables
 SET DOCKER_USER=abhishekak71
-SET IMAGE_NAME=devopsfinal
+SET IMAGE_NAME=devopsfinal-client
 SET TAG=latest
 SET PORT=3000
 
-REM Build Docker image
-echo [INFO] Building Docker image...
+REM 1. Build Docker image from client directory
+echo [STEP 1/3] Building Docker image...
+cd client
 docker build -t %DOCKER_USER%/%IMAGE_NAME%:%TAG% .
 
 IF %ERRORLEVEL% NEQ 0 (
@@ -16,8 +16,8 @@ IF %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-REM Push to Docker Hub
-echo [INFO] Pushing image to Docker Hub...
+REM 2. Push to Docker Hub
+echo [STEP 2/3] Pushing to Docker Hub...
 docker push %DOCKER_USER%/%IMAGE_NAME%:%TAG%
 
 IF %ERRORLEVEL% NEQ 0 (
@@ -25,19 +25,16 @@ IF %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-REM Stop and remove any existing container
-echo [INFO] Stopping and removing existing containers...
-docker stop %IMAGE_NAME% 2>nul || echo [INFO] No running containers found
-docker rm %IMAGE_NAME% 2>nul || echo [INFO] No containers to remove
-
-REM Run new container
-echo [INFO] Running new container...
+REM 3. Run container
+echo [STEP 3/3] Starting container...
+docker stop %IMAGE_NAME% 2>nul
+docker rm %IMAGE_NAME% 2>nul
 docker run -d --name %IMAGE_NAME% -p %PORT%:%PORT% %DOCKER_USER%/%IMAGE_NAME%:%TAG%
 
 IF %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Docker run failed
+    echo [ERROR] Container startup failed
     exit /b 1
 )
 
-echo [SUCCESS] Deployment completed successfully!
+echo [SUCCESS] Client deployed at http://localhost:%PORT%/
 exit /b 0
